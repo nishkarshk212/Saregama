@@ -18,14 +18,12 @@ from config import API_URL, VIDEO_API_URL, API_KEY
 
 
 def cookie_txt_file():
-    cookie_dir = f"{os.getcwd()}/cookies"
-    if not os.path.exists(cookie_dir):
-        return None
-    cookies_files = [f for f in os.listdir(cookie_dir) if f.endswith(".txt")]
-    if not cookies_files:
-        return None
-    cookie_file = os.path.join(cookie_dir, random.choice(cookies_files))
-    return cookie_file
+    """
+    Deprecated: Cookies are no longer used. Using NextGen API instead.
+    Returns None to force fallback to API-based methods.
+    """
+    # Always return None to use NextGen API
+    return None
 
 
 async def download_song(link: str, fast_mode: bool = True):
@@ -239,44 +237,33 @@ async def download_video(link: str, fast_mode: bool = True):
             return None
 
 async def check_file_size(link):
-    async def get_format_info(link):
-        cookie_file = cookie_txt_file()
-        if not cookie_file:
-            print("No cookies found. Cannot check file size.")
-            return None
-            
-        proc = await asyncio.create_subprocess_exec(
-            "yt-dlp",
-            "--cookies", cookie_file,
-            "-J",
-            link,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            print(f'Error:\n{stderr.decode()}')
-            return None
-        return json.loads(stdout.decode())
-
-    def parse_size(formats):
-        total_size = 0
-        for format in formats:
-            if 'filesize' in format:
-                total_size += format['filesize']
-        return total_size
-
-    info = await get_format_info(link)
-    if info is None:
+    """
+    Check file size using NexGen API instead of cookies
+    Returns file size in bytes or None if unavailable
+    """
+    try:
+        # Extract video ID from link
+        video_id = link.split('v=')[-1].split('&')[0]
+        
+        # Use NexGen API to get download info (includes size)
+        from AnnieXMedia.platforms.NextGenBots import get_nexgen_client
+        client = get_nexgen_client()
+        
+        download_data = await client.get_song_download(video_id)
+        
+        if download_data:
+            # Try to get file size from API response
+            file_size = download_data.get("filesize") or download_data.get("size")
+            if file_size:
+                print(f"[INFO] File size from API: {file_size} bytes")
+                return int(file_size)
+                
+        print("[INFO] File size not available from API")
         return None
-    
-    formats = info.get('formats', [])
-    if not formats:
-        print("No formats found.")
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to check file size: {e}")
         return None
-    
-    total_size = parse_size(formats)
-    return total_size
 
 async def shell_cmd(cmd):
     proc = await asyncio.create_subprocess_shell(
