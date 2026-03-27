@@ -31,19 +31,19 @@ def skip_permission_markup(_, current_mode: str = "admin"):
     buttons = [
         [
             InlineKeyboardButton(
-                text=f"{'✓' if current_mode == 'admin' else '○'} Aᴅᴍɪɴs Oɴʟʏ",
+                text=f"{'✅' if current_mode == 'admin' else '⚪'} Aᴅᴍɪɴs Oɴʟʏ",
                 callback_data="SET_SKIP_ADMIN"
             ),
         ],
         [
             InlineKeyboardButton(
-                text=f"{'✓' if current_mode == 'member' else '○'} Mᴇᴍʙᴇʀs + Aᴅᴍɪɴs",
+                text=f"{'✅' if current_mode == 'member' else '⚪'} Mᴇᴍʙᴇʀs + Aᴅᴍɪɴs",
                 callback_data="SET_SKIP_MEMBER"
             ),
         ],
         [
             InlineKeyboardButton(
-                text=f"{'✓' if current_mode == 'everyone' else '○'} Eᴠᴇʀʏᴏɴᴇ",
+                text=f"{'✅' if current_mode == 'everyone' else '⚪'} Eᴠᴇʀʏᴏɴᴇ",
                 callback_data="SET_SKIP_EVERYONE"
             ),
         ],
