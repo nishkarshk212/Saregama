@@ -164,7 +164,7 @@ def AdminActual(mystic):
 
 
 def ActualAdminCB(mystic):
-    async def wrapper(client, CallbackQuery, *args, **kwargs):
+    async def wrapper(client, CallbackQuery, **kwargs):
         if await is_maintenance() is False:
             if CallbackQuery.from_user.id not in SUDOERS:
                 return await CallbackQuery.answer(
@@ -177,7 +177,7 @@ def ActualAdminCB(mystic):
         except:
             _ = get_string("en")
         if CallbackQuery.message.chat.type == ChatType.PRIVATE:
-            return await mystic(client, CallbackQuery, _, *args, **kwargs)
+            return await mystic(client, CallbackQuery, _, **kwargs)
         is_non_admin = await is_nonadmin_chat(CallbackQuery.message.chat.id)
         if not is_non_admin:
             try:
@@ -203,6 +203,6 @@ def ActualAdminCB(mystic):
                             )
                         except:
                             return
-        return await mystic(client, CallbackQuery, _, *args, **kwargs)
+        return await mystic(client, CallbackQuery, _, **kwargs)
 
     return wrapper
