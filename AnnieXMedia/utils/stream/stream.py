@@ -6,7 +6,7 @@ from typing import Union
 from pyrogram.types import InlineKeyboardMarkup
 
 import config
-from AnnieXMedia import Carbon, YouTube, app
+from AnnieXMedia import Carbon, LOGGER, YouTube, app
 from AnnieXMedia.core.call import StreamController
 from AnnieXMedia.misc import db
 from AnnieXMedia.utils.database import add_active_video_chat, is_active_chat
@@ -156,8 +156,17 @@ async def stream(
             file_path, direct = await YouTube.download(
                 vidid, mystic, video=is_video, videoid=vidid
             )
-        except Exception:
-            raise AssistantErr(_["play_14"])
+        except Exception as e:
+            # Log the actual error for debugging
+            LOGGER("AnnieXMedia").error(f"Download failed for {vidid}: {str(e)}")
+            # Check if it's a cookie-related error
+            if "cookie" in str(e).lower() or "cookies" in str(e).lower():
+                raise AssistantErr("ʏᴏᴜᴛᴜʙᴇ ᴄᴏᴏᴋɪᴇs ᴇxᴘɪʀᴇᴅ. ᴘʟᴇᴀsᴇ ᴜᴘᴅᴀᴛᴇ ᴄᴏᴏᴋɪᴇs.")
+            # Check if it's a download URL error
+            elif "url" in str(e).lower() or "download" in str(e).lower():
+                raise AssistantErr("ғᴀɪʟᴇᴅ ᴛᴏ ɢᴇᴛ ᴅᴏᴡɴʟᴏᴀᴅ ʟɪɴᴋ. ᴛʀʏ ᴀɴᴏᴛʜᴇʀ ᴛʀᴀᴄᴋ.")
+            else:
+                raise AssistantErr(_["play_14"])
         if not file_path:
             raise AssistantErr(_["play_14"])
 

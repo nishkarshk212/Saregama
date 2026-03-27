@@ -14,7 +14,7 @@ from AnnieXMedia.utils.database import is_on_off
 from AnnieXMedia.utils.formatters import time_to_seconds
 from AnnieXMedia import LOGGER
 
-from config import API_URL, VIDEO_API_URL, API_KEY
+from config import API_URL, VIDEO_API_URL, API_KEY, NEXGENBOTS_API
 
 
 def cookie_txt_file():
@@ -78,12 +78,13 @@ async def download_song(link: str, fast_mode: bool = True):
             traceback.print_exc()
             print("[INFO] Falling back to alternative method...")
     
-    # Use custom API if configured
+    # Use custom API if configured, otherwise use default NEXGENBOTS_API
     print(f"[FALLBACK] Using API_URL for audio...")
-    if API_URL and API_KEY:
-        song_url = f"{API_URL}/song/{video_id}?api={API_KEY}"
+    api_endpoint = API_URL or NEXGENBOTS_API
+    if api_endpoint and API_KEY:
+        song_url = f"{api_endpoint}/song/{video_id}?api={API_KEY}"
     else:
-        print("[ERROR] No API configured!")
+        print("[ERROR] No API configured! Please set API_KEY in environment variables.")
         return None
         
     async with aiohttp.ClientSession() as session:
@@ -186,12 +187,13 @@ async def download_video(link: str, fast_mode: bool = True):
             traceback.print_exc()
             print("[INFO] Falling back to alternative method...")
     
-    # Fallback to custom API if configured
+    # Fallback to custom API if configured, otherwise use default NEXGENBOTS_API
     print(f"[FALLBACK] Using VIDEO_API_URL fallback...")
-    if VIDEO_API_URL and API_KEY:
-        video_url = f"{VIDEO_API_URL}/video/{video_id}?api={API_KEY}"
+    api_endpoint = VIDEO_API_URL or NEXGENBOTS_API
+    if api_endpoint and API_KEY:
+        video_url = f"{api_endpoint}/video/{video_id}?api={API_KEY}"
     else:
-        print("[ERROR] No API configured!")
+        print("[ERROR] No API configured! Please set API_KEY in environment variables.")
         return None
         
     async with aiohttp.ClientSession() as session:
@@ -536,48 +538,62 @@ class YouTubeAPI:
             link = self.base + link
         loop = asyncio.get_running_loop()
         def audio_dl():
-            cookie_file = cookie_txt_file()
-            if not cookie_file:
-                raise Exception("No cookies found. Cannot download audio.")
-                
-            ydl_optssx = {
-                "format": "bestaudio/best",
-                "outtmpl": "downloads/%(id)s.%(ext)s",
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                "quiet": True,
-                "cookiefile" : cookie_file,
-                "no_warnings": True,
-            }
-            x = yt_dlp.YoutubeDL(ydl_optssx)
-            info = x.extract_info(link, False)
-            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
-            if os.path.exists(xyz):
+            try:
+                cookie_file = cookie_txt_file()
+                if not cookie_file:
+                    raise Exception("No cookies found. Cannot download audio.")
+                    
+                ydl_optssx = {
+                    "format": "bestaudio/best",
+                    "outtmpl": "downloads/%(id)s.%(ext)s",
+                    "geo_bypass": True,
+                    "nocheckcertificate": True,
+                    "quiet": True,
+                    "cookiefile" : cookie_file,
+                    "no_warnings": True,
+                }
+                x = yt_dlp.YoutubeDL(ydl_optssx)
+                info = x.extract_info(link, False)
+                xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
+                if os.path.exists(xyz):
+                    return xyz
+                x.download([link])
                 return xyz
-            x.download([link])
-            return xyz
+            except KeyError as e:
+                # This happens when YouTube changes their response structure
+                raise Exception(f"YouTube info extraction failed - missing key: {str(e)}")
+            except Exception as e:
+                # Re-raise with more context
+                raise Exception(f"Audio download failed: {str(e)}")
 
         def video_dl():
-            cookie_file = cookie_txt_file()
-            if not cookie_file:
-                raise Exception("No cookies found. Cannot download video.")
-                
-            ydl_optssx = {
-                "format": "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio[ext=m4a])",
-                "outtmpl": "downloads/%(id)s.%(ext)s",
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                "quiet": True,
-                "cookiefile" : cookie_file,
-                "no_warnings": True,
-            }
-            x = yt_dlp.YoutubeDL(ydl_optssx)
-            info = x.extract_info(link, False)
-            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
-            if os.path.exists(xyz):
+            try:
+                cookie_file = cookie_txt_file()
+                if not cookie_file:
+                    raise Exception("No cookies found. Cannot download video.")
+                    
+                ydl_optssx = {
+                    "format": "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio[ext=m4a])",
+                    "outtmpl": "downloads/%(id)s.%(ext)s",
+                    "geo_bypass": True,
+                    "nocheckcertificate": True,
+                    "quiet": True,
+                    "cookiefile" : cookie_file,
+                    "no_warnings": True,
+                }
+                x = yt_dlp.YoutubeDL(ydl_optssx)
+                info = x.extract_info(link, False)
+                xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
+                if os.path.exists(xyz):
+                    return xyz
+                x.download([link])
                 return xyz
-            x.download([link])
-            return xyz
+            except KeyError as e:
+                # This happens when YouTube changes their response structure
+                raise Exception(f"YouTube info extraction failed - missing key: {str(e)}")
+            except Exception as e:
+                # Re-raise with more context
+                raise Exception(f"Video download failed: {str(e)}")
 
         def song_video_dl():
             cookie_file = cookie_txt_file()
