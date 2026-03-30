@@ -74,6 +74,7 @@ START_VIDS = [
     "https://files.catbox.moe/4ij8ag.mp4",
     "https://files.catbox.moe/z68nj0.mp4",
     "https://files.catbox.moe/nl65r9.mp4",
+    "https://files.catbox.moe/3v4bft.mp4",  # New start video
 ]
 STICKERS = [
     "CAACAgUAAx0Cd6nKUAACASBl_rnalOle6g7qS-ry-aZ1ZpVEnwACgg8AAizLEFfI5wfykoCR4h4E",
