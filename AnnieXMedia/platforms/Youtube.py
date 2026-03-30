@@ -29,10 +29,20 @@ def cookie_txt_file():
 async def download_song(link: str, fast_mode: bool = True):
     video_id = link.split('v=')[-1].split('&')[0]
 
+    # Enhanced caching for audio
     download_folder = "downloads"
+    os.makedirs(download_folder, exist_ok=True)
+    
+    # Check cache first
     for ext in ["mp3", "m4a", "webm"]:
         file_path = f"{download_folder}/{video_id}.{ext}"
         if os.path.exists(file_path):
+            if os.path.getsize(file_path) > 1024:
+                print(f"[FAST AUDIO CACHE] Using cached file: {file_path}")
+                return file_path
+            else:
+                os.remove(file_path)
+                print(f"[AUDIO CACHE CLEAN] Removed corrupted file: {file_path}")
             print(f"[FAST] Using cached audio: {file_path}")
             return file_path
     
@@ -62,15 +72,21 @@ async def download_song(link: str, fast_mode: bool = True):
                     file_path = os.path.join(download_folder, file_name)
                     os.makedirs(download_folder, exist_ok=True)
                     
-                    async with aiohttp.ClientSession() as session:
+                    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=10)) as session:
                         async with session.get(download_url) as response:
+                            total_size = int(response.headers.get('content-length', 0))
+                            downloaded = 0
                             with open(file_path, 'wb') as f:
                                 while True:
-                                    chunk = await response.content.read(16384)
+                                    chunk = await response.content.read(32768)
                                     if not chunk:
                                         break
                                     f.write(chunk)
-                    print(f"[FAST] Audio download complete: {file_path}")
+                                    downloaded += len(chunk)
+                                    if total_size > 0 and downloaded % (512 * 1024) == 0:
+                                        percent = (downloaded / total_size) * 100
+                                        print(f"[AUDIO DOWNLOAD] {percent:.1f}% complete...")
+                    print(f"[FAST] Audio download complete: {file_path} ({len(open(file_path, 'rb').read())/1024/1024:.2f} MB)")
                     return file_path
         except Exception as e:
             print(f"[NexGenBots Audio Error] {e}")
@@ -140,12 +156,22 @@ async def download_song(link: str, fast_mode: bool = True):
 async def download_video(link: str, fast_mode: bool = True):
     video_id = link.split('v=')[-1].split('&')[0]
 
+    # Enhanced caching - check multiple formats and locations
     download_folder = "downloads"
+    os.makedirs(download_folder, exist_ok=True)
+    
+    # Check cache first (priority order: mp4, webm, mkv)
     for ext in ["mp4", "webm", "mkv"]:
         file_path = f"{download_folder}/{video_id}.{ext}"
         if os.path.exists(file_path):
-            print(f"[FAST] Using cached file: {file_path}")
-            return file_path
+            # Verify file is not corrupted by checking size
+            if os.path.getsize(file_path) > 1024:  # At least 1KB
+                print(f"[FAST CACHE] Using cached file: {file_path}")
+                return file_path
+            else:
+                # Remove corrupted file
+                os.remove(file_path)
+                print(f"[CACHE CLEAN] Removed corrupted file: {file_path}")
     
     # Try NexGenBots API first (FAST MODE)
     if fast_mode:
@@ -171,15 +197,22 @@ async def download_video(link: str, fast_mode: bool = True):
                     file_path = os.path.join(download_folder, file_name)
                     os.makedirs(download_folder, exist_ok=True)
                     
-                    async with aiohttp.ClientSession() as session:
+                    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=10)) as session:
                         async with session.get(download_url) as response:
+                            total_size = int(response.headers.get('content-length', 0))
+                            downloaded = 0
                             with open(file_path, 'wb') as f:
                                 while True:
-                                    chunk = await response.content.read(16384)
+                                    chunk = await response.content.read(32768)  # Increased buffer size
                                     if not chunk:
                                         break
                                     f.write(chunk)
-                    print(f"[FAST] Download complete: {file_path}")
+                                    downloaded += len(chunk)
+                                    # Progress logging (optional)
+                                    if total_size > 0 and downloaded % (1024 * 1024) == 0:
+                                        percent = (downloaded / total_size) * 100
+                                        print(f"[DOWNLOAD] {percent:.1f}% complete...")
+                    print(f"[FAST] Download complete: {file_path} ({len(open(file_path, 'rb').read())/1024/1024:.2f} MB)")
                     return file_path
         except Exception as e:
             print(f"[NexGenBots Video Error] {e}")

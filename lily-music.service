@@ -1,0 +1,28 @@
+[Unit]
+Description=Lily Music Bot Service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/Lily-Music-Deploy
+Environment="PATH=/usr/bin:/usr/local/bin:/bin"
+ExecStart=/usr/bin/python3 -m AnnieXMedia
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lily-music
+
+# Performance optimizations
+Nice=-5
+IOSchedulingClass=realtime
+IOSchedulingPriority=4
+
+# Security (optional but recommended)
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
