@@ -9,7 +9,7 @@ import asyncio
 from typing import Union
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
-from youtubesearchpython.aio import VideosSearch, Playlist
+from youtubesearchpython import VideosSearch, Playlist
 from AnnieXMedia.utils.database import is_on_off
 from AnnieXMedia.utils.formatters import time_to_seconds
 from AnnieXMedia import LOGGER
